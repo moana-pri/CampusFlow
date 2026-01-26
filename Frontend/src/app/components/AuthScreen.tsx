@@ -1,0 +1,170 @@
+import { useState } from 'react';
+import { ArrowLeft, Sparkles, User, Users, Shield, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+
+interface AuthScreenProps {
+  role: 'student' | 'organizer' | 'admin';
+  onBack: () => void;
+  onLogin: (role: 'student' | 'organizer' | 'admin') => void;
+}
+
+export default function AuthScreen({ role, onBack, onLogin }: AuthScreenProps) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+
+  const roleConfig = {
+    student: {
+      title: 'Student Portal',
+      description: 'Discover events, join clubs, and register for campus activities',
+      icon: User,
+      color: 'indigo',
+      gradient: 'from-indigo-500 to-indigo-600',
+      bgGradient: 'from-indigo-50 to-violet-50',
+    },
+    organizer: {
+      title: 'Organizer Portal',
+      description: 'Create events, manage resources, and track registrations',
+      icon: Users,
+      color: 'emerald',
+      gradient: 'from-emerald-500 to-emerald-600',
+      bgGradient: 'from-emerald-50 to-teal-50',
+    },
+    admin: {
+      title: 'Admin Portal',
+      description: 'Review submissions, approve events, and manage campus resources',
+      icon: Shield,
+      color: 'violet',
+      gradient: 'from-violet-500 to-violet-600',
+      bgGradient: 'from-violet-50 to-purple-50',
+    },
+  };
+
+  const config = roleConfig[role];
+  const IconComponent = config.icon;
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onLogin(role);
+  };
+
+  return (
+    <div className={`min-h-screen bg-gradient-to-br ${config.bgGradient} flex items-center justify-center p-6`}>
+      <div className="w-full max-w-md">
+        {/* Back Button */}
+        <button 
+          onClick={onBack}
+          className="flex items-center gap-2 text-slate-700 hover:text-slate-900 mb-8 transition-colors"
+        >
+          <ArrowLeft className="w-5 h-5" />
+          Back to Home
+        </button>
+
+        {/* Auth Card */}
+        <div className="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden">
+          {/* Header */}
+          <div className={`bg-gradient-to-br ${config.gradient} p-8 text-white`}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                <IconComponent className="w-7 h-7" />
+              </div>
+              <div>
+                <h1 className="text-2xl">{config.title}</h1>
+              </div>
+            </div>
+            <p className="text-white/90">{config.description}</p>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="p-8 space-y-6">
+            {/* Email Field */}
+            <div>
+              <label className="block text-sm text-slate-700 mb-2">Email Address</label>
+              <div className="relative">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2">
+                  <Mail className="w-5 h-5 text-slate-400" />
+                </div>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder={`${role}@university.edu`}
+                  className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-100 transition-all"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Password Field */}
+            <div>
+              <label className="block text-sm text-slate-700 mb-2">Password</label>
+              <div className="relative">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2">
+                  <Lock className="w-5 h-5 text-slate-400" />
+                </div>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  className="w-full pl-12 pr-12 py-3.5 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-100 transition-all"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Remember & Forgot */}
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-2 focus:ring-indigo-200"
+                />
+                <span className="text-sm text-slate-700">Remember me</span>
+              </label>
+              <button type="button" className="text-sm text-indigo-600 hover:text-indigo-700">
+                Forgot password?
+              </button>
+            </div>
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              className={`w-full py-4 rounded-2xl bg-gradient-to-r ${config.gradient} text-white hover:shadow-lg transition-all shadow-${config.color}-600/25`}
+            >
+              Sign In
+            </button>
+
+            {/* Demo Credentials */}
+            <div className="pt-4 border-t border-slate-200">
+              <div className="bg-slate-50 rounded-2xl p-4">
+                <div className="text-xs text-slate-600 mb-2">Demo Credentials:</div>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Email:</span>
+                    <span className="text-slate-700 font-mono">{role}@demo.edu</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Password:</span>
+                    <span className="text-slate-700 font-mono">demo123</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        {/* Footer */}
+        <div className="text-center mt-6 text-sm text-slate-600">
+          Don't have an account? <button className="text-indigo-600 hover:text-indigo-700">Request Access</button>
+        </div>
+      </div>
+    </div>
+  );
+}
