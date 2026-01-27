@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import LandingPage from '@/app/components/LandingPage';
-import AuthScreen from '@/app/components/AuthScreen';
-import StudentDashboard from '@/app/components/StudentDashboard';
-import OrganizerDashboard from '@/app/components/OrganizerDashboard';
-import AdminDashboard from '@/app/components/AdminDashboard';
+import LandingPage from './components/LandingPage';
+import AuthScreen from './components/AuthScreen';
+import StudentDashboard from './components/StudentDashboard';
+import OrganizerDashboard from './components/OrganizerDashboard';
+import AdminDashboard from './components/AdminDashboard';
 
 type Screen = 'landing' | 'auth' | 'dashboard';
 type Role = 'student' | 'organizer' | 'admin' | null;
