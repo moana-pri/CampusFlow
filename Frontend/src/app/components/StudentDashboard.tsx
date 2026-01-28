@@ -418,6 +418,21 @@ export default function StudentDashboard({ onLogout, onHome }: StudentDashboardP
             </div>
           </div>
         )}
+
+        {/* Clubs Tab */}
+        {activeTab === 'clubs' && (
+          <div className="text-center py-16">
+            <Users className="w-20 h-20 text-slate-300 mx-auto mb-4" />
+            <h2 className="text-2xl text-slate-900 mb-2">Clubs Coming Soon</h2>
+            <p className="text-slate-600 mb-6">We're working on club features. Stay tuned!</p>
+            <button
+              onClick={() => setActiveTab('discover')}
+              className="px-6 py-3 rounded-xl bg-indigo-500 text-white hover:bg-indigo-600 transition-all"
+            >
+              Discover Events
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
