@@ -269,12 +269,12 @@ export default function StudentDashboard({ onLogout, onHome }: StudentDashboardP
             ) : (
               <div className={`grid ${viewMode === 'grid' ? 'grid-cols-1 lg:grid-cols-2 xl:grid-cols-3' : 'grid-cols-1'} gap-6`}>
                 {filteredEvents.map((event) => (
-                  <div key={event.id} className="bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-lg transition-shadow">
-                    <div className="relative h-48">
+                  <div key={event.id} className="bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-lg transition-shadow group">
+                    <div className="relative h-48 overflow-hidden">
                       <ImageWithFallback 
                         src={event.imageUrl}
                         alt={event.title}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                       <button className="absolute top-3 right-3 w-10 h-10 rounded-xl bg-white/90 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-colors">
                         <Heart className={`w-5 h-5 ${event.isFavorite ? 'fill-red-500 text-red-500' : 'text-slate-600'}`} />
@@ -317,8 +317,12 @@ export default function StudentDashboard({ onLogout, onHome }: StudentDashboardP
                         </span>
                         <div className="w-32 h-2 bg-slate-100 rounded-full overflow-hidden">
                           <div 
-                            className="h-full bg-indigo-500 rounded-full"
-                            style={{ width: `${(event.registered / event.capacity) * 100}%` }}
+                            className={`h-full rounded-full transition-all ${
+                              event.registered >= event.capacity ? 'bg-red-500' :
+                              (event.registered / event.capacity) > 0.8 ? 'bg-amber-500' :
+                              'bg-indigo-500'
+                            }`}
+                            style={{ width: `${Math.min((event.registered / event.capacity) * 100, 100)}%` }}
                           ></div>
                         </div>
                       </div>
@@ -340,18 +344,35 @@ export default function StudentDashboard({ onLogout, onHome }: StudentDashboardP
 
         {/* Registered Events Tab */}
         {activeTab === 'registered' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {registeredEvents.map((event) => (
-              <div key={event.id} className="bg-white rounded-2xl border border-slate-200 p-6">
-                <div className="flex gap-6">
-                  <div className="flex-shrink-0">
-                    <div className="w-32 h-32 bg-slate-100 rounded-xl flex items-center justify-center">
-                      <QrCode className="w-20 h-20 text-slate-400" />
+          <div className="space-y-6">
+            <div className="bg-gradient-to-br from-indigo-50 to-violet-50 rounded-2xl p-8 border border-indigo-200">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-indigo-600 flex items-center justify-center">
+                  <CheckCircle2 className="w-7 h-7 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-2xl text-slate-900 font-semibold">Your Registered Events</h2>
+                  <p className="text-slate-600">You're registered for {registeredEvents.length} event(s)</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {registeredEvents.map((event) => (
+                <div key={event.id} className="bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-lg transition-shadow">
+                  <div className="relative h-48 overflow-hidden group">
+                    <ImageWithFallback 
+                      src={event.imageUrl}
+                      alt={event.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute top-3 right-3 px-3 py-1.5 rounded-xl bg-emerald-600 text-white text-xs font-medium flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      Registered
                     </div>
-                    <p className="text-xs text-slate-500 text-center mt-2">Scan at venue</p>
                   </div>
-                  <div className="flex-1">
-                    <h3 className="text-xl text-slate-900 mb-2">{event.title}</h3>
+                  <div className="p-6">
+                    <h3 className="text-xl text-slate-900 font-semibold mb-3">{event.title}</h3>
                     <div className="space-y-2 mb-4">
                       <div className="flex items-center gap-2 text-sm text-slate-600">
                         <Calendar className="w-4 h-4" />
@@ -361,39 +382,40 @@ export default function StudentDashboard({ onLogout, onHome }: StudentDashboardP
                         <MapPin className="w-4 h-4" />
                         {event.venue}
                       </div>
-                      <div className="text-sm text-slate-600">
+                      <div className="flex items-center gap-2 text-sm text-slate-600">
+                        <QrCode className="w-4 h-4" />
                         Registration: {event.registrationNumber}
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <button className="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors text-sm flex items-center gap-2">
+                      <button className="flex-1 px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors text-sm flex items-center justify-center gap-2">
                         <Download className="w-4 h-4" />
                         Download QR
                       </button>
                       <button
                         onClick={() => handleUnregister(event.id)}
-                        className="px-4 py-2 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 transition-colors text-sm"
+                        className="flex-1 px-4 py-2 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 transition-colors text-sm font-medium"
                       >
                         Unregister
                       </button>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
-            {registeredEvents.length === 0 && (
-              <div className="col-span-2 text-center py-12">
-                <Calendar className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                <h3 className="text-xl text-slate-900 mb-2">No Registered Events</h3>
-                <p className="text-slate-600 mb-6">Start exploring and register for exciting campus events!</p>
-                <button
-                  onClick={() => setActiveTab('discover')}
-                  className="px-6 py-3 rounded-xl bg-indigo-500 text-white hover:bg-indigo-600 transition-all"
-                >
-                  Discover Events
-                </button>
-              </div>
-            )}
+              ))}
+              {registeredEvents.length === 0 && (
+                <div className="col-span-2 text-center py-12">
+                  <Calendar className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                  <h3 className="text-xl text-slate-900 mb-2">No Registered Events</h3>
+                  <p className="text-slate-600 mb-6">Start exploring and register for exciting campus events!</p>
+                  <button
+                    onClick={() => setActiveTab('discover')}
+                    className="px-6 py-3 rounded-xl bg-indigo-500 text-white hover:bg-indigo-600 transition-all"
+                  >
+                    Discover Events
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
