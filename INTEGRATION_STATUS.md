@@ -278,7 +278,7 @@ VITE_SUPABASE_ANON_KEY=eyJhbGc...
 
 And in `Backend/.env`:
 ```env
-MONGODB_URI=mongodb+srv://sohamkadu24_db_user:BQGeiuA93HmJ1f16@cluster0.sqrsuav.mongodb.net/campusflow?appName=Cluster0
+MONGODB_URI=mongodb+srv://username:YOUR_PASSWORD_HERE@cluster0.sqrsuav.mongodb.net/campusflow?appName=Cluster0
 SUPABASE_URL=https://gphmcbniijsoplnfifgx.supabase.co
 SUPABASE_ANON_KEY=eyJhbGc...
 SUPABASE_SERVICE_ROLE_KEY=<get from Supabase dashboard>
