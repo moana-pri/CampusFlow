@@ -81,10 +81,11 @@ export const eventAPI = {
   update: (id: string, data: any) => api.put(`/events/${id}`, data),
   delete: (id: string) => api.delete(`/events/${id}`),
   submitForApproval: (id: string) => api.post(`/events/${id}/submit`),
-  approve: (id: string) => api.post(`/events/${id}/approve`),
-  reject: (id: string, reason: string) => api.post(`/events/${id}/reject`, { reason }),
-  getPending: () => api.get('/events/pending'),
-  getMy: () => api.get('/events/my-events'),
+  approve: (id: string, notes?: string) => api.post(`/events/${id}/approve`, { notes }),
+  reject: (id: string, notes: string) => api.post(`/events/${id}/reject`, { notes }),
+  requestChanges: (id: string, notes: string) => api.post(`/events/${id}/request-changes`, { notes }),
+  getPending: () => api.get('/events/admin/pending'),
+  getMy: () => api.get('/events/my/events'),
 };
 
 export const registrationAPI = {

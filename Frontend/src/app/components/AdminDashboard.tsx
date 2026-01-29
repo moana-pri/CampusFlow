@@ -91,7 +91,7 @@ export default function AdminDashboard({ onLogout, onHome }: AdminDashboardProps
     if (!selectedEvent) return;
 
     try {
-      await eventAPI.reject(selectedEvent.id, reviewNotes);
+      await eventAPI.requestChanges(selectedEvent.id, reviewNotes);
       alert('Changes requested. Organizer will be notified.');
       setSelectedEvent(null);
       setReviewNotes('');
