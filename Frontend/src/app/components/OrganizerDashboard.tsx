@@ -230,13 +230,14 @@ export default function OrganizerDashboard({ onLogout, onHome }: OrganizerDashbo
       }
 
       const cloudName = (import.meta as any).env.VITE_CLOUDINARY_CLOUD_NAME || 'demo';
+      const uploadPreset = (import.meta as any).env.VITE_CLOUDINARY_UPLOAD_PRESET || 'ml_default';
       
       // Upload poster image to Cloudinary
       let imageUrl = null;
       try {
         const formData = new FormData();
         formData.append('file', eventData.posterImage);
-        formData.append('upload_preset', 'ml_default'); // Use Cloudinary's default unsigned preset
+        formData.append('upload_preset', uploadPreset);
         
         const uploadResponse = await axios.post(
           `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
@@ -257,7 +258,7 @@ export default function OrganizerDashboard({ onLogout, onHome }: OrganizerDashbo
       try {
         const formData = new FormData();
         formData.append('file', eventData.rulebookFile);
-        formData.append('upload_preset', 'ml_default'); // Use Cloudinary's default unsigned preset
+        formData.append('upload_preset', uploadPreset);
         
         const uploadResponse = await axios.post(
           `https://api.cloudinary.com/v1_1/${cloudName}/raw/upload`,
