@@ -146,6 +146,8 @@ export const login = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { email, password } = req.body;
 
+    console.log('🔐 Login attempt:', { email, role: req.body.role });
+
     if (!email || !password) {
       throw new AppError('Please provide email and password', 400);
     }
@@ -154,18 +156,25 @@ export const login = async (req: AuthRequest, res: Response): Promise<void> => {
     const user = await User.findOne({ email }).select('+password');
 
     if (!user) {
+      console.log('❌ User not found:', email);
       throw new AppError('Invalid email or password', 401);
     }
 
+    console.log('✅ User found:', { email: user.email, isVerified: user.isVerified });
+
     // Check if user is verified
     if (!user.isVerified) {
+      console.log('❌ User not verified:', email);
       throw new AppError('Please verify your email first', 401);
     }
 
     // Check password
     const isPasswordCorrect = await bcrypt.compare(password, user.password);
 
+    console.log('🔑 Password check:', { isPasswordCorrect });
+
     if (!isPasswordCorrect) {
+      console.log('❌ Invalid password for:', email);
       throw new AppError('Invalid email or password', 401);
     }
 

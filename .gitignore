@@ -40,3 +40,6 @@ coverage
 
 # OS generated files
 Thumbs.db
+
+# Deployment guide (contains sensitive setup info)
+DEPLOYMENT_GUIDE.txt

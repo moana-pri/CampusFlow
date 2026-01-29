@@ -46,15 +46,15 @@ export default function App() {
       )}
 
       {currentScreen === 'dashboard' && selectedRole === 'student' && (
-        <StudentDashboard onLogout={handleLogout} />
+        <StudentDashboard onLogout={handleLogout} onHome={handleBackToLanding} />
       )}
 
       {currentScreen === 'dashboard' && selectedRole === 'organizer' && (
-        <OrganizerDashboard onLogout={handleLogout} />
+        <OrganizerDashboard onLogout={handleLogout} onHome={handleBackToLanding} />
       )}
 
       {currentScreen === 'dashboard' && selectedRole === 'admin' && (
-        <AdminDashboard onLogout={handleLogout} />
+        <AdminDashboard onLogout={handleLogout} onHome={handleBackToLanding} />
       )}
     </div>
   );
