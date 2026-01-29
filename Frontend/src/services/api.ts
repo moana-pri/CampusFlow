@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { supabase } from '../lib/supabase';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = (import.meta as any).env.VITE_API_URL || 'http://localhost:5000/api';
 
 // Create axios instance
 const api = axios.create({
@@ -83,8 +83,8 @@ export const eventAPI = {
   submitForApproval: (id: string) => api.post(`/events/${id}/submit`),
   approve: (id: string) => api.post(`/events/${id}/approve`),
   reject: (id: string, reason: string) => api.post(`/events/${id}/reject`, { reason }),
-  getPending: () => api.get('/events/pending'),
-  getMy: () => api.get('/events/my-events'),
+  getPending: () => api.get('/events/admin/pending'),
+  getMy: () => api.get('/events/my/events'),
 };
 
 export const registrationAPI = {
@@ -106,8 +106,8 @@ export const bookingAPI = {
 
 export const notificationAPI = {
   getAll: (params?: any) => api.get('/notifications', { params }),
-  getUnreadCount: () => api.get('/notifications/unread-count'),
-  markAsRead: (id: string) => api.patch(`/notifications/${id}/read`),
-  markAllAsRead: () => api.patch('/notifications/mark-all-read'),
+  getUnreadCount: () => api.get('/notifications/unread/count'),
+  markAsRead: (id: string) => api.put(`/notifications/${id}/read`),
+  markAllAsRead: () => api.put('/notifications/read-all'),
   delete: (id: string) => api.delete(`/notifications/${id}`),
 };
