@@ -8,6 +8,8 @@ import {
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { motion, AnimatePresence } from 'motion/react';
 import { eventAPI, registrationAPI } from '../../services/api';
+import { downloadCertificate } from '../../utils/certificate.utils';
+import NotificationCenter from './NotificationCenter';
 
 interface StudentDashboardProps {
   onLogout: () => void;
@@ -57,30 +59,34 @@ export default function StudentDashboard({ onLogout, onHome }: StudentDashboardP
   const loadEvents = async () => {
     try {
       setLoading(true);
+      setError('');
       const response = await eventAPI.getAll({ status: 'approved' });
-      setEvents(response.data.data.events || []);
+      console.log('Events response:', response.data);
+      
+      // Map backend event data to frontend format
+      const backendEvents = response.data.data.events || [];
+      const mappedEvents: Event[] = backendEvents.map((event: any) => ({
+        id: event._id,
+        title: event.title,
+        club: event.clubs?.[0]?.clubName || event.organizerName || 'Campus Event',
+        date: new Date(event.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        time: event.time,
+        venue: event.venue,
+        capacity: event.capacity,
+        registered: event.registeredCount || 0,
+        category: event.category,
+        description: event.description,
+        imageUrl: event.imageUrl || 'https://images.unsplash.com/photo-1582192730841-2a682d7375f9?w=1080',
+        hasRulebook: !!event.rulebookUrl,
+        tags: event.tags || [],
+        isFavorite: false,
+        status: event.status,
+      }));
+      
+      setEvents(mappedEvents);
     } catch (err: any) {
-      setError('Failed to load events');
       console.error('Error loading events:', err);
-      // Fallback to demo data if API fails
-      setEvents([
-        {
-          id: '1',
-          title: 'Tech Symposium 2026',
-          club: 'Computer Science Club',
-          date: 'Feb 15, 2026',
-          time: '9:00 AM - 5:00 PM',
-          venue: 'Main Auditorium',
-          capacity: 200,
-          registered: 156,
-          category: 'Technical',
-          description: 'Annual technology conference featuring keynote speakers, workshops, and networking sessions.',
-          imageUrl: 'https://images.unsplash.com/photo-1582192730841-2a682d7375f9?w=1080',
-          hasRulebook: true,
-          tags: ['AI', 'Machine Learning', 'Web Dev'],
-          isFavorite: true,
-        },
-      ]);
+      setError('Failed to load events. Please try again later.');
     } finally {
       setLoading(false);
     }
@@ -89,7 +95,30 @@ export default function StudentDashboard({ onLogout, onHome }: StudentDashboardP
   const loadRegisteredEvents = async () => {
     try {
       const response = await registrationAPI.getMy();
-      setRegisteredEvents(response.data.data.registrations || []);
+      console.log('Registered events response:', response.data);
+      
+      // Map backend registration data to frontend format
+      const backendRegistrations = response.data.data.registrations || [];
+      const mappedRegistrations: RegisteredEvent[] = backendRegistrations.map((reg: any) => ({
+        id: reg.event?._id || reg.eventId,
+        title: reg.event?.title || 'Event',
+        club: reg.event?.clubs?.[0]?.clubName || reg.event?.organizerName || 'Campus Event',
+        date: new Date(reg.event?.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        time: reg.event?.time || 'TBD',
+        venue: reg.event?.venue || 'TBD',
+        capacity: reg.event?.capacity || 0,
+        registered: reg.event?.registeredCount || 0,
+        category: reg.event?.category || 'Other',
+        description: reg.event?.description || '',
+        imageUrl: reg.event?.imageUrl || 'https://images.unsplash.com/photo-1582192730841-2a682d7375f9?w=1080',
+        hasRulebook: !!reg.event?.rulebookUrl,
+        tags: reg.event?.tags || [],
+        registrationDate: new Date(reg.registeredAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        qrCode: reg.qrCode || '',
+        registrationNumber: reg._id,
+      }));
+      
+      setRegisteredEvents(mappedRegistrations);
     } catch (err) {
       console.error('Error loading registered events:', err);
     }
@@ -116,6 +145,24 @@ export default function StudentDashboard({ onLogout, onHome }: StudentDashboardP
       loadEvents();
     } catch (err: any) {
       alert(err.response?.data?.message || 'Failed to unregister. Please try again.');
+    }
+  };
+
+  const handleDownloadCertificate = async (event: RegisteredEvent) => {
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      await downloadCertificate(
+        {
+          studentName: user.name || 'Student',
+          eventTitle: event.title,
+          eventDate: event.date,
+          organizerName: event.club,
+          certificateNumber: event.registrationNumber,
+        },
+        `${event.title.replace(/\s+/g, '_')}_Certificate.pdf`
+      );
+    } catch (err) {
+      alert('Failed to generate certificate. Please try again.');
     }
   };
 
@@ -148,10 +195,7 @@ export default function StudentDashboard({ onLogout, onHome }: StudentDashboardP
                   className="pl-10 pr-4 py-2 rounded-xl border border-slate-200 bg-slate-50 w-64 focus:outline-none focus:ring-2 focus:ring-indigo-200"
                 />
               </div>
-              <button className="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors relative">
-                <Bell className="w-5 h-5 text-slate-600" />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-indigo-500 rounded-full"></span>
-              </button>
+              <NotificationCenter userId={localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')!)._id : ''} />
               <button className="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors">
                 <Settings className="w-5 h-5 text-slate-600" />
               </button>
@@ -265,6 +309,18 @@ export default function StudentDashboard({ onLogout, onHome }: StudentDashboardP
               <div className="text-center py-12">
                 <div className="inline-block w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
                 <p className="mt-4 text-slate-600">Loading events...</p>
+              </div>
+            ) : filteredEvents.length === 0 ? (
+              <div className="text-center py-16">
+                <div className="w-20 h-20 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
+                  <Calendar className="w-10 h-10 text-slate-400" />
+                </div>
+                <h3 className="text-xl font-semibold text-slate-900 mb-2">No events found</h3>
+                <p className="text-slate-600 max-w-md mx-auto">
+                  {selectedCategory !== 'all' 
+                    ? `No ${selectedCategory} events available at the moment. Try selecting a different category.`
+                    : 'No events are currently available. Check back soon for upcoming campus activities!'}
+                </p>
               </div>
             ) : (
               <div className={`grid ${viewMode === 'grid' ? 'grid-cols-1 lg:grid-cols-2 xl:grid-cols-3' : 'grid-cols-1'} gap-6`}>
@@ -388,34 +444,34 @@ export default function StudentDashboard({ onLogout, onHome }: StudentDashboardP
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <button className="flex-1 px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors text-sm flex items-center justify-center gap-2">
+                      <button className="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors text-sm flex items-center gap-2">
                         <Download className="w-4 h-4" />
                         Download QR
                       </button>
                       <button
                         onClick={() => handleUnregister(event.id)}
-                        className="flex-1 px-4 py-2 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 transition-colors text-sm font-medium"
+                        className="px-4 py-2 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 transition-colors text-sm"
                       >
                         Unregister
                       </button>
                     </div>
                   </div>
                 </div>
-              ))}
-              {registeredEvents.length === 0 && (
-                <div className="col-span-2 text-center py-12">
-                  <Calendar className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                  <h3 className="text-xl text-slate-900 mb-2">No Registered Events</h3>
-                  <p className="text-slate-600 mb-6">Start exploring and register for exciting campus events!</p>
-                  <button
-                    onClick={() => setActiveTab('discover')}
-                    className="px-6 py-3 rounded-xl bg-indigo-500 text-white hover:bg-indigo-600 transition-all"
-                  >
-                    Discover Events
-                  </button>
-                </div>
-              )}
-            </div>
+              </div>
+            ))}
+            {registeredEvents.length === 0 && (
+              <div className="col-span-2 text-center py-12">
+                <Calendar className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                <h3 className="text-xl text-slate-900 mb-2">No Registered Events</h3>
+                <p className="text-slate-600 mb-6">Start exploring and register for exciting campus events!</p>
+                <button
+                  onClick={() => setActiveTab('discover')}
+                  className="px-6 py-3 rounded-xl bg-indigo-500 text-white hover:bg-indigo-600 transition-all"
+                >
+                  Discover Events
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

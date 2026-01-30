@@ -20,6 +20,7 @@ import chatRoutes from './routes/chat.routes';
 import analyticsRoutes from './routes/analytics.routes';
 import certificateRoutes from './routes/certificate.routes';
 import sponsorshipRoutes from './routes/sponsorship.routes';
+import attendanceRoutes from './routes/attendance.routes';
 
 // Load environment variables
 dotenv.config();
@@ -61,6 +62,7 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/certificates', certificateRoutes);
 app.use('/api/sponsorships', sponsorshipRoutes);
+app.use('/api/attendance', attendanceRoutes);
 
 // Error handling
 app.use(errorHandler);

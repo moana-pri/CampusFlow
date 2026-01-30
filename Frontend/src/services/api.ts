@@ -11,12 +11,13 @@ const api = axios.create({
   },
 });
 
-// Request interceptor to add Supabase token
+// Request interceptor to add JWT token
 api.interceptors.request.use(
   async (config) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.access_token) {
-      config.headers.Authorization = `Bearer ${session.access_token}`;
+    // Get token from localStorage (backend JWT)
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
@@ -30,12 +31,10 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
-      // Token expired, refresh or redirect to login
-      const { data: { session } } = await supabase.auth.refreshSession();
-      if (!session) {
-        // Redirect to login
-        window.location.href = '/auth';
-      }
+      // Token expired or invalid, redirect to login
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('user');
+      window.location.href = '/';
     }
     return Promise.reject(error);
   }
