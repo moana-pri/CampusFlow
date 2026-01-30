@@ -65,27 +65,40 @@ export const getChatMessages = async (req: AuthRequest, res: Response): Promise<
     const { roomId } = req.params;
     const { page = 1, limit = 50 } = req.query;
 
-    // Verify user is participant
+    // Verify room exists
     const room = await ChatRoom.findById(roomId);
     if (!room) {
       throw new AppError('Chat room not found', 404);
     }
 
-    if (!room.participants.includes(req.user!._id.toString())) {
-      throw new AppError('Not authorized to access this chat room', 403);
-    }
+    // Allow all authenticated users to view messages (public discussion model)
+    // Students can see all organizer-created discussion rooms
 
     const messages = await ChatMessage.find({ roomId })
       .sort({ createdAt: -1 })
       .limit(Number(limit))
       .skip((Number(page) - 1) * Number(limit));
 
+    // Transform messages to match frontend expectations
+    const transformedMessages = messages.map(msg => ({
+      _id: msg._id,
+      roomId: msg.roomId,
+      senderId: {
+        _id: msg.senderId,
+        name: msg.senderName
+      },
+      content: msg.text, // Map 'text' to 'content' for frontend
+      type: 'text',
+      createdAt: msg.createdAt,
+      isRead: msg.readBy?.includes(req.user!._id.toString()) || false
+    }));
+
     const total = await ChatMessage.countDocuments({ roomId });
 
     res.status(200).json({
       success: true,
       data: {
-        messages: messages.reverse(), // Return in chronological order
+        messages: transformedMessages.reverse(), // Return in chronological order
         pagination: {
           page: Number(page),
           limit: Number(limit),

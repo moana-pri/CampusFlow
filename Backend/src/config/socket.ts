@@ -47,17 +47,38 @@ export const initializeSocketIO = (io: Server): void => {
     // Handle chat messages
     socket.on('send_message', async (data: { roomId: string; content: string; type: string }) => {
       try {
-        // Save message to database
+        const { User } = require('../models/User.model');
+        const user = await User.findById(socket.user?._id);
+        
+        if (!user) {
+          console.error('User not found');
+          return;
+        }
+
+        // Save message to database with correct field names
         const { ChatMessage } = require('../models/ChatMessage.model');
         const message = await ChatMessage.create({
           roomId: data.roomId,
           senderId: socket.user?._id,
-          content: data.content,
-          type: data.type || 'text',
+          senderName: user.name,
+          text: data.content, // Use 'text' field as per schema
+          readBy: [socket.user?._id],
         });
 
-        // Populate sender info
-        await message.populate('senderId', 'name email');
+        // Create response object matching frontend expectations
+        const messageResponse = {
+          _id: message._id,
+          roomId: message.roomId,
+          senderId: {
+            _id: user._id,
+            name: user.name,
+            email: user.email
+          },
+          content: message.text, // Send as 'content' for frontend
+          type: 'text',
+          createdAt: message.createdAt,
+          isRead: false
+        };
 
         // Update room's last message
         const { ChatRoom } = require('../models/ChatRoom.model');
@@ -70,7 +91,8 @@ export const initializeSocketIO = (io: Server): void => {
         });
 
         // Emit to all users in the room
-        io.to(`room:${data.roomId}`).emit('new_message', message);
+        io.to(`room:${data.roomId}`).emit('new_message', messageResponse);
+        console.log('Message saved and emitted:', messageResponse);
       } catch (error) {
         console.error('Error sending message:', error);
       }

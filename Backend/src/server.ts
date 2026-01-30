@@ -9,6 +9,7 @@ import morgan from 'morgan';
 import dotenv from 'dotenv';
 import { connectDatabase } from './config/database';
 import { initializeSocketIO } from './config/socket';
+import { initializeScheduler } from './utils/scheduler.utils';
 import { errorHandler } from './middlewares/errorHandler';
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
@@ -16,6 +17,7 @@ import eventRoutes from './routes/event.routes';
 import resourceRoutes from './routes/resource.routes';
 import registrationRoutes from './routes/registration.routes';
 import notificationRoutes from './routes/notification.routes';
+import notificationTestRoutes from './routes/notification.test.routes';
 import chatRoutes from './routes/chat.routes';
 import analyticsRoutes from './routes/analytics.routes';
 import certificateRoutes from './routes/certificate.routes';
@@ -57,6 +59,7 @@ app.use('/api/events', eventRoutes);
 app.use('/api/resources', resourceRoutes);
 app.use('/api/registrations', registrationRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/notifications', notificationTestRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/certificates', certificateRoutes);
@@ -80,6 +83,10 @@ connectDatabase()
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`📡 Environment: ${process.env.NODE_ENV}`);
       console.log(`🌐 Frontend URL: ${process.env.FRONTEND_URL}`);
+      
+      // Initialize notification scheduler
+      initializeScheduler(io);
+      console.log('⏰ Notification scheduler initialized');
     });
   })
   .catch((error) => {

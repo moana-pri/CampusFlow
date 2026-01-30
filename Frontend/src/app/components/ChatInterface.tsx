@@ -77,14 +77,24 @@ export default function ChatInterface({ onBack }: ChatInterfaceProps) {
 
     newSocket.on('new_message', (message: Message) => {
       console.log('Received new_message event:', message);
-      if (selectedRoom && message.roomId === selectedRoom._id) {
-        setMessages((prev) => {
+      
+      // Update messages if this is the current room
+      setMessages((prev) => {
+        // Check if message belongs to currently selected room
+        const currentRoomId = selectedRoom?._id;
+        if (message.roomId === currentRoomId) {
           // Avoid duplicates
-          const exists = prev.some(m => m._id === message._id);
-          if (exists) return prev;
+          const exists = prev.some(m => m._id === message._id || m.content === message.content && Math.abs(new Date(m.createdAt).getTime() - new Date(message.createdAt).getTime()) < 1000);
+          if (exists) {
+            console.log('Message already exists, skipping duplicate');
+            return prev;
+          }
+          console.log('Adding message to chat');
           return [...prev, message];
-        });
-      }
+        }
+        return prev;
+      });
+      
       // Update last message in room list
       setRooms((prev) =>
         prev.map((room) =>
@@ -116,7 +126,7 @@ export default function ChatInterface({ onBack }: ChatInterfaceProps) {
     return () => {
       newSocket.close();
     };
-  }, [selectedRoom]);
+  }, []); // Remove selectedRoom dependency so socket stays connected
 
   // Load chat rooms
   useEffect(() => {
