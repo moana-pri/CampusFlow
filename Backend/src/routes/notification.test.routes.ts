@@ -1,12 +1,12 @@
-import { Router } from 'express';
+import { Router, Response } from 'express';
 import { Notification } from '../models/Notification.model';
-import { protect } from '../middlewares/auth.middleware';
+import { protect, AuthRequest } from '../middlewares/auth.middleware';
 import { emitNotification } from '../config/socket';
 
 const router = Router();
 
 // Test endpoint to manually send a notification (development only)
-router.post('/test-notification', protect, async (req, res) => {
+router.post('/test-notification', protect, async (req: AuthRequest, res: Response) => {
   try {
     const notification = await Notification.create({
       userId: req.user!._id,
