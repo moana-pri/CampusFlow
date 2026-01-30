@@ -11,7 +11,7 @@ frontend/node_modules
 dist
 dist-ssr
 *.local
-
+DEPLOYMENT_GUIDE.txt
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
