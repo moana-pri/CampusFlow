@@ -46,11 +46,16 @@ const sendViaBrevoAPI = async (options: EmailOptions): Promise<void> => {
 
 export const sendEmail = async (options: EmailOptions): Promise<void> => {
   try {
-    // Try Brevo API first (more reliable)
+    // Try Brevo API first (more reliable) if key exists
     if (process.env.BREVO_API_KEY) {
-      await sendViaBrevoAPI(options);
-      console.log(`✅ Email sent successfully to ${options.to} via Brevo API`);
-      return;
+      try {
+        await sendViaBrevoAPI(options);
+        console.log(`✅ Email sent successfully to ${options.to} via Brevo API`);
+        return;
+      } catch (apiError) {
+        console.warn('⚠️ Brevo API failed, falling back to SMTP:', apiError);
+        // Continue to SMTP fallback
+      }
     }
 
     // Fallback to SMTP

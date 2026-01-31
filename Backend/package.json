@@ -8,6 +8,7 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "init-db": "ts-node scripts/initDatabase.ts",
+    "create-admin": "ts-node scripts/createAdmin.ts",
     "lint": "eslint src/**/*.ts",
     "test": "jest"
   },

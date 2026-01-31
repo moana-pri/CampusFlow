@@ -6,6 +6,7 @@ import StudentDashboard from './components/StudentDashboard';
 import OrganizerDashboard from './components/OrganizerDashboard';
 import AdminDashboard from './components/AdminDashboard';
 import AuthCallback from './components/AuthCallback';
+import CompleteProfile from './components/CompleteProfile';
 
 type Role = 'student' | 'organizer' | 'admin' | null;
 
@@ -70,6 +71,7 @@ function AppContent() {
           } 
         />
         <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route path="/complete-profile" element={<CompleteProfile />} />
         <Route 
           path="/student" 
           element={
