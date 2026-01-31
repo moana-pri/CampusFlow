@@ -1,12 +1,7 @@
 import { useState, useEffect } from 'react';
-// NOTE: The previous CalendarDays-based calendar view and its import were
-// intentionally removed from StudentDashboard as part of the calendar feature
-// deprecation (see product decision / tracking ticket as applicable).
 import { 
-  Sparkles, Search, Bell, Settings, LogOut, 
-  Calendar, Users, MapPin, FileText, Star,
-  Clock, User, Filter, Grid, List, Heart,
-  QrCode, CheckCircle2, Download, ChevronRight, ArrowLeft, MessageCircle
+  Search, Bell, Home, MessageCircle, Calendar as CalendarIcon,
+  MapPin, Clock, Users, Heart, ChevronRight, QrCode, X
 } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { motion, AnimatePresence } from 'motion/react';
@@ -32,7 +27,7 @@ interface Event {
   description: string;
   imageUrl: string;
   hasRulebook: boolean;
-  formLink?: string; // Optional registration form link
+  formLink?: string;
   tags: string[];
   isFavorite?: boolean;
   status?: string;
@@ -46,16 +41,15 @@ interface RegisteredEvent extends Event {
 
 export default function StudentDashboard({ onLogout, onHome }: StudentDashboardProps) {
   const [view, setView] = useState<'main' | 'chat'>('main');
-  const [activeTab, setActiveTab] = useState<'discover' | 'registered' | 'clubs'>('discover');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [activeTab, setActiveTab] = useState<'discover' | 'registered'>('discover');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [events, setEvents] = useState<Event[]>([]);
   const [registeredEvents, setRegisteredEvents] = useState<RegisteredEvent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const [selectedEventForRegistration, setSelectedEventForRegistration] = useState<Event | null>(null);
   const [registering, setRegistering] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const categories = ['all', 'Technical', 'Cultural', 'Sports', 'Workshop', 'Seminar'];
 
@@ -72,27 +66,8 @@ export default function StudentDashboard({ onLogout, onHome }: StudentDashboardP
       const response = await eventAPI.getAll({ status: 'approved' });
       setEvents(response.data.data.events || []);
     } catch (err: any) {
-      setError('Failed to load events');
       console.error('Error loading events:', err);
-      // Fallback to demo data if API fails
-      setEvents([
-        {
-          id: '1',
-          title: 'Tech Symposium 2026',
-          club: 'Computer Science Club',
-          date: 'Feb 15, 2026',
-          time: '9:00 AM - 5:00 PM',
-          venue: 'Main Auditorium',
-          capacity: 200,
-          registered: 156,
-          category: 'Technical',
-          description: 'Annual technology conference featuring keynote speakers, workshops, and networking sessions.',
-          imageUrl: 'https://images.unsplash.com/photo-1582192730841-2a682d7375f9?w=1080',
-          hasRulebook: true,
-          tags: ['AI', 'Machine Learning', 'Web Dev'],
-          isFavorite: true,
-        },
-      ]);
+      setEvents([]);
     } finally {
       setLoading(false);
     }
@@ -108,11 +83,8 @@ export default function StudentDashboard({ onLogout, onHome }: StudentDashboardP
   };
 
   const handleRegister = async (eventId: string) => {
-    // Find the event
-    const event = events.find(e => e.id === eventId);
+    const event = events.find(e => (e._id || e.id) === eventId);
     if (!event) return;
-
-    // Show registration modal
     setSelectedEventForRegistration(event);
     setShowRegistrationModal(true);
   };
@@ -123,17 +95,14 @@ export default function StudentDashboard({ onLogout, onHome }: StudentDashboardP
     try {
       setRegistering(true);
       const eventId = selectedEventForRegistration._id || selectedEventForRegistration.id;
-      console.log('Registering user for event:', eventId);
-      const response = await registrationAPI.register(eventId);
-      console.log('Registration response:', response);
+      await registrationAPI.register(eventId);
       
-      // Close modal
       setShowRegistrationModal(false);
       setSelectedEventForRegistration(null);
       
       alert('✅ Registration confirmed! Check the "My Events" tab to view your QR code.');
       loadRegisteredEvents();
-      loadEvents(); // Refresh to update registration count
+      loadEvents();
     } catch (err: any) {
       console.error('Registration error:', err);
       const errorMsg = err.response?.data?.message || err.message || 'Registration failed. Please try again.';
@@ -156,383 +125,353 @@ export default function StudentDashboard({ onLogout, onHome }: StudentDashboardP
     }
   };
 
-  const filteredEvents = selectedCategory === 'all' 
-    ? events 
-    : events.filter(e => e.category === selectedCategory);
+  const filteredEvents = events.filter(e => {
+    const matchesCategory = selectedCategory === 'all' || e.category === selectedCategory;
+    const matchesSearch = !searchQuery || 
+      e.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      e.club.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
+
+  const getRegistrationProgress = (registered: number, capacity: number) => {
+    return Math.min((registered / capacity) * 100, 100);
+  };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
-      {/* Top Navigation */}
-      <nav className="bg-white border-b border-slate-200 sticky top-0 z-40">
-        <div className="px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center">
-                  <Sparkles className="w-5 h-5 text-white" />
-                </div>
-                <span className="text-xl text-slate-900 font-semibold">CampusFlow</span>
-              </div>
-              <div className="h-6 w-px bg-slate-200"></div>
-              <span className="text-slate-600">Student Portal</span>
-            </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-cyan-50 to-teal-50">
+      {/* Sticky Glassmorphism Header */}
+      <header className="sticky top-0 z-50 backdrop-blur-xl bg-white/60 border-b border-white/50 shadow-lg shadow-indigo-500/10">
+        <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="relative">
-                <Search className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Search events..."
-                  className="pl-10 pr-4 py-2 rounded-xl border border-slate-200 bg-slate-50 w-64 focus:outline-none focus:ring-2 focus:ring-indigo-200"
-                />
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-600 to-teal-500 flex items-center justify-center shadow-lg shadow-blue-500/30">
+                <Home className="w-5 h-5 text-white" />
               </div>
-              <button className="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors relative">
-                <Bell className="w-5 h-5 text-slate-600" />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-indigo-500 rounded-full"></span>
-              </button>
+              <div>
+                <h1 className="text-xl font-bold text-slate-900">Discovery Hub</h1>
+                <p className="text-sm text-slate-500 hidden sm:block">Explore campus events</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-2">
               <button 
                 onClick={() => setView('chat')}
-                className={`w-10 h-10 rounded-xl ${view === 'chat' ? 'bg-indigo-100' : 'bg-slate-100 hover:bg-slate-200'} flex items-center justify-center transition-colors`}
+                className="hidden sm:flex w-10 h-10 rounded-xl bg-white/80 hover:bg-white border border-white/50 items-center justify-center transition-all shadow-md shadow-indigo-500/10"
               >
-                <MessageCircle className={`w-5 h-5 ${view === 'chat' ? 'text-indigo-600' : 'text-slate-600'}`} />
+                <MessageCircle className="w-5 h-5 text-blue-600" />
               </button>
-              <button className="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors">
-                <Settings className="w-5 h-5 text-slate-600" />
+              <button className="relative w-10 h-10 rounded-xl bg-white/80 hover:bg-white border border-white/50 flex items-center justify-center transition-all shadow-md shadow-indigo-500/10">
+                <Bell className="w-5 h-5 text-blue-600" />
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+                  3
+                </span>
               </button>
-              <div className="h-6 w-px bg-slate-200"></div>
-              {onHome && (
-                <>
-                  <button 
-                    onClick={onHome}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 transition-all"
-                  >
-                    <ArrowLeft className="w-4 h-4" />
-                    <span className="text-sm font-medium">Back to Home</span>
-                  </button>
-                  <div className="h-6 w-px bg-slate-200"></div>
-                </>
-              )}
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-indigo-100 flex items-center justify-center">
-                  <User className="w-5 h-5 text-indigo-600" />
-                </div>
-                <button 
-                  onClick={onLogout}
-                  className="flex items-center gap-2 px-3 py-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
-                >
-                  <span className="text-sm font-medium">Logout</span>
-                  <LogOut className="w-4 h-4" />
-                </button>
-              </div>
+            </div>
+          </div>
+
+          {/* Search Bar - Mobile Optimized */}
+          <div className="mt-4">
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search events, clubs..."
+                className="w-full pl-12 pr-4 py-3 rounded-2xl bg-white/80 border border-white/50 focus:bg-white focus:border-blue-300 focus:outline-none focus:ring-4 focus:ring-blue-100 transition-all shadow-md shadow-indigo-500/10 text-slate-900 placeholder:text-slate-400"
+              />
             </div>
           </div>
         </div>
-      </nav>
+      </header>
 
-      {/* Show Chat Interface */}
-      {view === 'chat' && (
-        <ChatInterface onBack={() => setView('main')} />
-      )}
+      {/* Chat Interface */}
+      {view === 'chat' && <ChatInterface onBack={() => setView('main')} />}
 
       {/* Main Content */}
       {view === 'main' && (
-        <div className="p-6 max-w-[1800px] mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl text-slate-900 mb-2">Welcome back! 👋</h1>
-          <p className="text-slate-600">Discover events, join clubs, and enhance your campus experience</p>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex items-center gap-2 mb-6 border-b border-slate-200">
-          {[
-            { id: 'discover', label: 'Discover Events', icon: Search },
-            { id: 'registered', label: 'My Events', icon: CheckCircle2 },
-            { id: 'clubs', label: 'My Clubs', icon: Users },
-          ].map((tab) => (
+        <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 lg:pb-6">
+          {/* Tabs */}
+          <div className="flex items-center gap-2 mb-6 overflow-x-auto scrollbar-hide">
             <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center gap-2 px-6 py-3 border-b-2 transition-all ${
-                activeTab === tab.id
-                  ? 'border-indigo-500 text-indigo-600'
-                  : 'border-transparent text-slate-600 hover:text-slate-900'
+              onClick={() => setActiveTab('discover')}
+              className={`px-6 py-3 rounded-2xl font-semibold whitespace-nowrap transition-all ${
+                activeTab === 'discover'
+                  ? 'bg-gradient-to-r from-blue-600 to-teal-500 text-white shadow-lg shadow-blue-500/30'
+                  : 'bg-white/60 text-slate-600 hover:bg-white/80 border border-white/50'
               }`}
             >
-              <tab.icon className="w-5 h-5" />
-              {tab.label}
-              {tab.id === 'registered' && registeredEvents.length > 0 && (
-                <span className="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-600 text-xs font-medium">
-                  {registeredEvents.length}
-                </span>
-              )}
+              Discover
             </button>
-          ))}
-        </div>
-
-        {error && (
-          <div className="mb-6 p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800">
-            {error}
+            <button
+              onClick={() => setActiveTab('registered')}
+              className={`px-6 py-3 rounded-2xl font-semibold whitespace-nowrap transition-all ${
+                activeTab === 'registered'
+                  ? 'bg-gradient-to-r from-blue-600 to-teal-500 text-white shadow-lg shadow-blue-500/30'
+                  : 'bg-white/60 text-slate-600 hover:bg-white/80 border border-white/50'
+              }`}
+            >
+              My Events ({registeredEvents.length})
+            </button>
           </div>
-        )}
 
-        {/* Discover Tab */}
-        {activeTab === 'discover' && (
-          <div>
-            {/* Filters */}
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-2">
-                <Filter className="w-5 h-5 text-slate-600" />
-                <div className="flex gap-2">
-                  {categories.map((cat) => (
-                    <button
-                      key={cat}
-                      onClick={() => setSelectedCategory(cat)}
-                      className={`px-4 py-2 rounded-xl text-sm transition-all ${
-                        selectedCategory === cat
-                          ? 'bg-indigo-500 text-white'
-                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                      }`}
-                    >
-                      {cat}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
+          {/* Category Pills */}
+          {activeTab === 'discover' && (
+            <div className="flex gap-2 mb-6 overflow-x-auto scrollbar-hide pb-2">
+              {categories.map((cat) => (
                 <button
-                  onClick={() => setViewMode('grid')}
-                  className={`p-2 rounded-lg ${viewMode === 'grid' ? 'bg-indigo-100 text-indigo-600' : 'text-slate-600'}`}
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`px-5 py-2 rounded-full font-medium whitespace-nowrap transition-all ${
+                    selectedCategory === cat
+                      ? 'bg-teal-500 text-white shadow-lg shadow-teal-500/30'
+                      : 'bg-white/60 text-slate-600 hover:bg-white/80 border border-white/50'
+                  }`}
                 >
-                  <Grid className="w-5 h-5" />
+                  {cat.charAt(0).toUpperCase() + cat.slice(1)}
                 </button>
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={`p-2 rounded-lg ${viewMode === 'list' ? 'bg-indigo-100 text-indigo-600' : 'text-slate-600'}`}
-                >
-                  <List className="w-5 h-5" />
-                </button>
-              </div>
+              ))}
             </div>
+          )}
 
-            {loading ? (
-              <div className="text-center py-12">
-                <div className="inline-block w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-                <p className="mt-4 text-slate-600">Loading events...</p>
-              </div>
-            ) : (
-              <div className={`grid ${viewMode === 'grid' ? 'grid-cols-1 lg:grid-cols-2 xl:grid-cols-3' : 'grid-cols-1'} gap-6`}>
-                {filteredEvents.map((event) => (
-                  <div key={event.id} className="bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-lg transition-shadow">
-                    <div className="relative h-48">
-                      <ImageWithFallback 
+          {/* Discover Tab - 3 Column Grid (Mobile: 1 Column) */}
+          {activeTab === 'discover' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {loading ? (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="animate-pulse backdrop-blur-xl bg-white/60 rounded-3xl border border-white/50 shadow-lg shadow-indigo-500/10 overflow-hidden">
+                    <div className="aspect-video bg-slate-200"></div>
+                    <div className="p-6 space-y-4">
+                      <div className="h-6 bg-slate-200 rounded"></div>
+                      <div className="h-4 bg-slate-200 rounded w-2/3"></div>
+                      <div className="h-4 bg-slate-200 rounded"></div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                filteredEvents.map((event) => (
+                  <motion.div
+                    key={event._id || event.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="backdrop-blur-xl bg-white/60 rounded-3xl border border-white/50 shadow-lg shadow-indigo-500/10 overflow-hidden group hover:shadow-2xl hover:shadow-indigo-500/20 transition-all duration-300"
+                  >
+                    {/* 16:9 Image with Date Badge */}
+                    <div className="relative aspect-video overflow-hidden bg-slate-100">
+                      <ImageWithFallback
                         src={event.imageUrl}
                         alt={event.title}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                       />
-                      <button className="absolute top-3 right-3 w-10 h-10 rounded-xl bg-white/90 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-colors">
-                        <Heart className={`w-5 h-5 ${event.isFavorite ? 'fill-red-500 text-red-500' : 'text-slate-600'}`} />
-                      </button>
+                      {/* Date Badge - Top Right */}
+                      <div className="absolute top-4 right-4 backdrop-blur-xl bg-white/90 px-4 py-2 rounded-2xl shadow-lg shadow-indigo-500/20 border border-white/50">
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-blue-600">{new Date(event.date).getDate()}</div>
+                          <div className="text-xs font-semibold text-slate-600 uppercase">
+                            {new Date(event.date).toLocaleString('en', { month: 'short' })}
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <div className="p-6">
-                      <div className="flex items-center gap-2 mb-3">
-                        <span className="px-3 py-1 rounded-full text-xs bg-indigo-100 text-indigo-700 font-medium">
-                          {event.category}
-                        </span>
-                        {event.hasRulebook && (
-                          <span className="px-3 py-1 rounded-full text-xs bg-emerald-100 text-emerald-700">
-                            <FileText className="w-3 h-3 inline mr-1" />
-                            Rulebook
-                          </span>
-                        )}
+
+                    <div className="p-6 space-y-4">
+                      <div>
+                        <h3 className="text-xl font-bold text-slate-900 mb-2 line-clamp-2">
+                          {event.title}
+                        </h3>
+                        <p className="text-sm font-medium text-teal-600">{event.club}</p>
                       </div>
-                      <h3 className="text-xl text-slate-900 mb-2">{event.title}</h3>
-                      <div className="flex items-center gap-2 text-sm text-slate-600 mb-4">
-                        <User className="w-4 h-4" />
-                        {event.club}
-                      </div>
-                      <div className="space-y-2 mb-4">
-                        <div className="flex items-center gap-2 text-sm text-slate-600">
-                          <Calendar className="w-4 h-4" />
-                          {event.date}
+
+                      <div className="space-y-2 text-sm text-slate-600">
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-blue-600" />
+                          <span>{event.time}</span>
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-slate-600">
-                          <Clock className="w-4 h-4" />
-                          {event.time}
+                        <div className="flex items-center gap-2">
+                          <MapPin className="w-4 h-4 text-blue-600" />
+                          <span>{event.venue}</span>
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-slate-600">
-                          <MapPin className="w-4 h-4" />
-                          {event.venue}
+                        <div className="flex items-center gap-2">
+                          <Users className="w-4 h-4 text-blue-600" />
+                          <span>{event.registered} / {event.capacity} registered</span>
                         </div>
                       </div>
-                      <div className="flex items-center justify-between mb-4">
-                        <span className="text-sm text-slate-600">
-                          {event.registered}/{event.capacity} registered
-                        </span>
-                        <div className="w-32 h-2 bg-slate-100 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-indigo-500 rounded-full"
-                            style={{ width: `${(event.registered / event.capacity) * 100}%` }}
+
+                      {/* Thick Rounded Progress Bar - Teal to Emerald Gradient */}
+                      <div>
+                        <div className="h-3 bg-slate-100 rounded-full overflow-hidden shadow-inner">
+                          <div
+                            className="h-full bg-gradient-to-r from-teal-500 to-emerald-500 rounded-full transition-all duration-500 shadow-lg shadow-teal-500/30"
+                            style={{ width: `${getRegistrationProgress(event.registered, event.capacity)}%` }}
                           ></div>
                         </div>
+                        <p className="text-xs text-slate-500 mt-1 text-center">
+                          {Math.round(getRegistrationProgress(event.registered, event.capacity))}% Full
+                        </p>
                       </div>
-                      <button
-                        onClick={() => handleRegister(event.id)}
-                        disabled={event.registered >= event.capacity}
-                        className="w-full px-4 py-3 rounded-xl bg-indigo-500 text-white hover:bg-indigo-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                      >
-                        <CheckCircle2 className="w-5 h-5" />
-                        {event.registered >= event.capacity 
-                          ? 'Event Full' 
-                          : event.formLink 
-                            ? 'Register via Form' 
-                            : 'Register Now'}
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
 
-        {/* Registered Events Tab */}
-        {activeTab === 'registered' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {registeredEvents.map((event) => (
-              <div key={event.id} className="bg-white rounded-2xl border border-slate-200 p-6">
-                <div className="flex gap-6">
-                  <div className="flex-shrink-0">
-                    <div className="w-32 h-32 bg-slate-100 rounded-xl flex items-center justify-center">
-                      <QrCode className="w-20 h-20 text-slate-400" />
-                    </div>
-                    <p className="text-xs text-slate-500 text-center mt-2">Scan at venue</p>
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-xl text-slate-900 mb-2">{event.title}</h3>
-                    <div className="space-y-2 mb-4">
-                      <div className="flex items-center gap-2 text-sm text-slate-600">
-                        <Calendar className="w-4 h-4" />
-                        {event.date}
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-slate-600">
-                        <MapPin className="w-4 h-4" />
-                        {event.venue}
-                      </div>
-                      <div className="text-sm text-slate-600">
-                        Registration: {event.registrationNumber}
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <button className="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors text-sm flex items-center gap-2">
-                        <Download className="w-4 h-4" />
-                        Download QR
-                      </button>
                       <button
-                        onClick={() => handleUnregister(event.id)}
-                        className="px-4 py-2 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 transition-colors text-sm"
+                        onClick={() => handleRegister(event._id || event.id || '')}
+                        disabled={event.registered >= event.capacity}
+                        className="w-full px-6 py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-teal-500 text-white font-semibold disabled:from-slate-300 disabled:to-slate-400 disabled:cursor-not-allowed hover:shadow-2xl hover:shadow-blue-500/40 transition-all duration-300 flex items-center justify-center gap-2"
                       >
-                        Unregister
+                        {event.registered >= event.capacity ? 'Full' : 'Register Now'}
+                        <ChevronRight className="w-5 h-5" />
                       </button>
                     </div>
+                  </motion.div>
+                ))
+              )}
+            </div>
+          )}
+
+          {/* Registered Events Tab */}
+          {activeTab === 'registered' && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {registeredEvents.map((event) => (
+                <div
+                  key={event._id || event.id}
+                  className="backdrop-blur-xl bg-white/60 rounded-3xl border border-white/50 shadow-lg shadow-indigo-500/10 overflow-hidden"
+                >
+                  <div className="p-6 space-y-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h3 className="text-xl font-bold text-slate-900 mb-2">{event.title}</h3>
+                        <p className="text-sm text-teal-600 font-medium">{event.club}</p>
+                      </div>
+                      <Heart className="w-6 h-6 text-red-500 fill-current" />
+                    </div>
+
+                    <div className="flex items-center justify-center p-6 bg-white/80 rounded-2xl border border-white/50">
+                      <img src={event.qrCode} alt="QR Code" className="w-48 h-48" />
+                    </div>
+
+                    <div className="text-center">
+                      <p className="text-sm text-slate-600">Registration Number</p>
+                      <p className="text-2xl font-bold text-blue-600">{event.registrationNumber}</p>
+                    </div>
+
+                    <button
+                      onClick={() => handleUnregister(event._id || event.id || '')}
+                      className="w-full px-6 py-3 rounded-2xl bg-red-500 text-white font-semibold hover:bg-red-600 transition-colors"
+                    >
+                      Unregister
+                    </button>
                   </div>
                 </div>
-              </div>
-            ))}
-            {registeredEvents.length === 0 && (
-              <div className="col-span-2 text-center py-12">
-                <Calendar className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                <h3 className="text-xl text-slate-900 mb-2">No Registered Events</h3>
-                <p className="text-slate-600 mb-6">Start exploring and register for exciting campus events!</p>
-                <button
-                  onClick={() => setActiveTab('discover')}
-                  className="px-6 py-3 rounded-xl bg-indigo-500 text-white hover:bg-indigo-600 transition-all"
-                >
-                  Discover Events
-                </button>
-              </div>
-            )}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
         </div>
       )}
 
+      {/* Fixed Bottom Navigation - Mobile Only */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 backdrop-blur-xl bg-white/60 border-t border-white/50 shadow-2xl shadow-indigo-500/20">
+        <div className="flex items-center justify-around px-4 py-3">
+          <button 
+            onClick={() => { setView('main'); setActiveTab('discover'); }}
+            className={`flex flex-col items-center gap-1 min-w-[44px] min-h-[44px] justify-center ${
+              view === 'main' && activeTab === 'discover' ? 'text-blue-600' : 'text-slate-400'
+            }`}
+          >
+            <Home className="w-6 h-6" />
+            <span className="text-xs font-medium">Home</span>
+          </button>
+          <button 
+            className="flex flex-col items-center gap-1 min-w-[44px] min-h-[44px] justify-center text-slate-400"
+          >
+            <Search className="w-6 h-6" />
+            <span className="text-xs font-medium">Search</span>
+          </button>
+          <button 
+            onClick={() => setView('chat')}
+            className={`flex flex-col items-center gap-1 min-w-[44px] min-h-[44px] justify-center ${
+              view === 'chat' ? 'text-blue-600' : 'text-slate-400'
+            }`}
+          >
+            <MessageCircle className="w-6 h-6" />
+            <span className="text-xs font-medium">Messages</span>
+          </button>
+          <button 
+            onClick={() => { setView('main'); setActiveTab('registered'); }}
+            className={`flex flex-col items-center gap-1 min-w-[44px] min-h-[44px] justify-center ${
+              view === 'main' && activeTab === 'registered' ? 'text-blue-600' : 'text-slate-400'
+            }`}
+          >
+            <CalendarIcon className="w-6 h-6" />
+            <span className="text-xs font-medium">My Events</span>
+          </button>
+        </div>
+      </nav>
+
       {/* Registration Modal */}
       {showRegistrationModal && selectedEventForRegistration && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-6">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md">
-            <div className="p-6 border-b border-slate-200">
-              <h2 className="text-2xl font-bold text-slate-900">Register for Event</h2>
-              <p className="text-sm text-slate-600 mt-1">{selectedEventForRegistration.title}</p>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="backdrop-blur-xl bg-white/90 rounded-3xl border border-white/50 shadow-2xl shadow-indigo-500/30 w-full max-w-md overflow-hidden"
+          >
+            <div className="p-6 border-b border-slate-200/50">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-900">Register for Event</h2>
+                  <p className="text-sm text-slate-600 mt-1">{selectedEventForRegistration.title}</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowRegistrationModal(false);
+                    setSelectedEventForRegistration(null);
+                  }}
+                  className="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors"
+                >
+                  <X className="w-5 h-5 text-slate-600" />
+                </button>
+              </div>
             </div>
-            
+
             <div className="p-6 space-y-6">
               {selectedEventForRegistration.formLink ? (
                 <>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-3">
+                    <label className="block text-sm font-semibold text-slate-700 mb-3">
                       Step 1: Fill Registration Form
                     </label>
                     <a
                       href={selectedEventForRegistration.formLink}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center justify-between px-4 py-3 bg-blue-50 hover:bg-blue-100 rounded-xl border-2 border-blue-200 transition-colors"
+                      className="flex items-center justify-between px-4 py-3 bg-blue-50 hover:bg-blue-100 rounded-2xl border-2 border-blue-200 transition-colors"
                     >
                       <span className="text-blue-700 font-medium">Open Google Form</span>
-                      <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                      </svg>
+                      <ChevronRight className="w-5 h-5 text-blue-600" />
                     </a>
-                    <p className="text-xs text-slate-500 mt-2">
-                      Click the link above to fill out the registration form. After completing the form, return here and click Submit.
-                    </p>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-3">
+                    <label className="block text-sm font-semibold text-slate-700 mb-3">
                       Step 2: Confirm Registration
                     </label>
                     <button
                       onClick={submitRegistration}
                       disabled={registering}
-                      className="w-full px-6 py-3 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 disabled:bg-slate-300 disabled:cursor-not-allowed transition-all font-medium"
+                      className="w-full px-6 py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-teal-500 text-white font-semibold disabled:from-slate-300 disabled:to-slate-400 disabled:cursor-not-allowed hover:shadow-2xl hover:shadow-blue-500/40 transition-all duration-300"
                     >
                       {registering ? 'Submitting...' : 'Submit Registration'}
                     </button>
-                    <p className="text-xs text-slate-500 mt-2">
-                      Click this button only after you have completed the Google Form.
-                    </p>
                   </div>
                 </>
               ) : (
-                <div>
-                  <p className="text-sm text-slate-600 mb-4">
-                    This event doesn't require a separate form. Click submit to register directly.
-                  </p>
-                  <button
-                    onClick={submitRegistration}
-                    disabled={registering}
-                    className="w-full px-6 py-3 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 disabled:bg-slate-300 disabled:cursor-not-allowed transition-all font-medium"
-                  >
-                    {registering ? 'Submitting...' : 'Submit Registration'}
-                  </button>
-                </div>
+                <button
+                  onClick={submitRegistration}
+                  disabled={registering}
+                  className="w-full px-6 py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-teal-500 text-white font-semibold disabled:from-slate-300 disabled:to-slate-400 disabled:cursor-not-allowed hover:shadow-2xl hover:shadow-blue-500/40 transition-all duration-300"
+                >
+                  {registering ? 'Submitting...' : 'Submit Registration'}
+                </button>
               )}
             </div>
-
-            <div className="p-6 border-t border-slate-200">
-              <button
-                onClick={() => {
-                  setShowRegistrationModal(false);
-                  setSelectedEventForRegistration(null);
-                }}
-                disabled={registering}
-                className="w-full px-6 py-3 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:opacity-50 transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
+          </motion.div>
         </div>
       )}
     </div>
