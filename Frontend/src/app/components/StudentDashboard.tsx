@@ -143,7 +143,7 @@ export default function StudentDashboard({ onLogout, onHome }: StudentDashboardP
     }
   };
 
-  const handleUnregister = async (eventId: string) => {
+  const handleUnregister = async (registrationId: string, eventId: string) => {
     if (!confirm('Are you sure you want to unregister from this event?')) return;
     
     try {
@@ -377,15 +377,17 @@ export default function StudentDashboard({ onLogout, onHome }: StudentDashboardP
                       </div>
                       <button
                         onClick={() => handleRegister(event.id)}
-                        disabled={event.registered >= event.capacity}
+                        disabled={event.registered >= event.capacity || event.isRegistered}
                         className="w-full px-4 py-3 rounded-xl bg-indigo-500 text-white hover:bg-indigo-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       >
                         <CheckCircle2 className="w-5 h-5" />
-                        {event.registered >= event.capacity 
-                          ? 'Event Full' 
-                          : event.formLink 
-                            ? 'Register via Form' 
-                            : 'Register Now'}
+                        {event.isRegistered
+                          ? 'Already Registered'
+                          : event.registered >= event.capacity 
+                            ? 'Event Full' 
+                            : event.formLink 
+                              ? 'Register via Form' 
+                              : 'Register Now'}
                       </button>
                     </div>
                   </div>
@@ -408,11 +410,15 @@ export default function StudentDashboard({ onLogout, onHome }: StudentDashboardP
                     <p className="text-xs text-slate-500 text-center mt-2">Scan at venue</p>
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-xl text-slate-900 mb-2">{event.title}</h3>
+                    <h3 className="text-xl font-bold text-slate-900 mb-2">{event.title}</h3>
                     <div className="space-y-2 mb-4">
                       <div className="flex items-center gap-2 text-sm text-slate-600">
                         <Calendar className="w-4 h-4" />
-                        {event.date}
+                        {new Date(event.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-slate-600">
+                        <Clock className="w-4 h-4" />
+                        {event.time}
                       </div>
                       <div className="flex items-center gap-2 text-sm text-slate-600">
                         <MapPin className="w-4 h-4" />
@@ -428,7 +434,7 @@ export default function StudentDashboard({ onLogout, onHome }: StudentDashboardP
                         Download QR
                       </button>
                       <button
-                        onClick={() => handleUnregister(event.id)}
+                        onClick={() => handleUnregister(event.id, event.eventId)}
                         className="px-4 py-2 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 transition-colors text-sm"
                       >
                         Unregister
