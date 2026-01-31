@@ -30,6 +30,9 @@ export const register = async (req: AuthRequest, res: Response): Promise<void> =
     const otp = isOAuthUser ? undefined : generateOTP(6);
     const otpExpires = isOAuthUser ? undefined : new Date(Date.now() + 10 * 60 * 1000);
 
+    // Check if profile is complete (OAuth users might not have department/year initially)
+    const isProfileComplete = !!(department && year);
+
     // Create user
     const user = await User.create({
       email,
@@ -41,6 +44,7 @@ export const register = async (req: AuthRequest, res: Response): Promise<void> =
       otp,
       otpExpires,
       isVerified: isOAuthUser, // OAuth users are pre-verified
+      isProfileComplete,
     });
 
     // Send OTP email only for non-OAuth users
@@ -71,6 +75,7 @@ export const register = async (req: AuthRequest, res: Response): Promise<void> =
             year: user.year,
             profilePicture: user.profilePicture,
             clubs: user.clubs,
+            isProfileComplete: user.isProfileComplete,
           },
           token,
           refreshToken,
@@ -228,6 +233,7 @@ export const login = async (req: AuthRequest, res: Response): Promise<void> => {
           profilePicture: user.profilePicture,
           clubs: user.clubs,
           profileVisibility: user.profileVisibility,
+          isProfileComplete: user.isProfileComplete,
         },
         token,
         refreshToken,

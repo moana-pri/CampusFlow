@@ -17,6 +17,7 @@ export interface IUser extends Document {
   }>;
   profileVisibility: 'public' | 'internal' | 'private';
   isVerified: boolean;
+  isProfileComplete: boolean;
   otp?: string;
   otpExpires?: Date;
   resetPasswordToken?: string;
@@ -95,6 +96,10 @@ const userSchema = new Schema<IUser>(
     isVerified: {
       type: Boolean,
       default: false,
+    },
+    isProfileComplete: {
+      type: Boolean,
+      default: true,
     },
     otp: {
       type: String,

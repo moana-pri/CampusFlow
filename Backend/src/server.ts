@@ -28,9 +28,10 @@ import sponsorshipRoutes from './routes/sponsorship.routes';
 
 const app = express();
 const server = http.createServer(app);
+const FRONTEND_URL = process.env.FRONTEND_URL?.trim() || 'http://localhost:5173';
 const io = new Server(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: FRONTEND_URL,
     credentials: true,
   },
 });
@@ -39,7 +40,7 @@ const io = new Server(server, {
 app.use(helmet());
 app.use(compression());
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: FRONTEND_URL,
   credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));

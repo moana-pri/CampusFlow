@@ -220,3 +220,63 @@ export const getUsers = async (req: AuthRequest, res: Response): Promise<void> =
     });
   }
 };
+
+export const completeProfile = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { department, year, clubs } = req.body;
+
+    if (!department || !year) {
+      throw new AppError('Department and year are required', 400);
+    }
+
+    const user = await User.findById(req.user!._id);
+
+    if (!user) {
+      throw new AppError('User not found', 404);
+    }
+
+    // Update profile fields
+    user.department = department;
+    user.year = year;
+    
+    // Add clubs if provided
+    if (clubs && Array.isArray(clubs)) {
+      user.clubs = clubs.map((club: any) => ({
+        clubId: club.clubId || club.clubName.toLowerCase().replace(/\\s+/g, '-'),
+        clubName: club.clubName,
+        role: club.role || 'member',
+        joinedAt: new Date(),
+      }));
+    }
+
+    // Mark profile as complete
+    user.isProfileComplete = true;
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Profile completed successfully',
+      data: {
+        user: {
+          id: user._id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          department: user.department,
+          year: user.year,
+          phone: user.phone,
+          profilePicture: user.profilePicture,
+          profileVisibility: user.profileVisibility,
+          clubs: user.clubs,
+          isProfileComplete: user.isProfileComplete,
+        },
+      },
+    });
+  } catch (error: any) {
+    res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || 'Failed to complete profile',
+    });
+  }
+};

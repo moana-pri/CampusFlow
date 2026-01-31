@@ -71,6 +71,8 @@ const AuthCallback: React.FC = () => {
         avatar: user.user_metadata?.avatar_url || user.user_metadata?.picture
       };
 
+      let backendUser;
+      
       try {
         // Try to log in first (user might already exist)
         const { data: loginData } = await authAPI.login({
@@ -83,9 +85,15 @@ const AuthCallback: React.FC = () => {
         localStorage.setItem('token', loginData.data.token);
         localStorage.setItem('refreshToken', loginData.data.refreshToken);
         localStorage.setItem('user', JSON.stringify(loginData.data.user));
+        backendUser = loginData.data.user;
       } catch (loginError: any) {
-        // If login fails, register the user
+        // If login fails, register the user (but NOT for admin role)
         if (loginError.response?.status === 401 || loginError.response?.status === 404) {
+          // Block admin registration - admins must exist in database already
+          if (pendingRole === 'admin') {
+            throw new Error('Admin account not found. Admin accounts must be created manually by system administrators.');
+          }
+          
           const { data: registerData } = await authAPI.register({
             ...userData,
             password: user.id, // Use Google ID as password for OAuth users
@@ -96,6 +104,7 @@ const AuthCallback: React.FC = () => {
           localStorage.setItem('token', registerData.data.token);
           localStorage.setItem('refreshToken', registerData.data.refreshToken);
           localStorage.setItem('user', JSON.stringify(registerData.data.user));
+          backendUser = registerData.data.user;
         } else {
           throw loginError;
         }
@@ -107,11 +116,16 @@ const AuthCallback: React.FC = () => {
 
       setStatus('success');
 
-      // Redirect to appropriate dashboard
+      // Check if profile is complete using the backend user data directly
+      const isProfileComplete = backendUser.isProfileComplete !== false;
+
+      // Redirect based on profile completion status
       setTimeout(() => {
-        if (pendingRole === 'admin') {
+        if (!isProfileComplete) {
+          navigate('/complete-profile');
+        } else if (backendUser.role === 'admin') {
           navigate('/admin');
-        } else if (pendingRole === 'organizer') {
+        } else if (backendUser.role === 'organizer') {
           navigate('/organizer');
         } else {
           navigate('/student');
