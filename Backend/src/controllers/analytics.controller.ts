@@ -359,9 +359,32 @@ export const getLeaderboard = async (_req: AuthRequest, res: Response): Promise<
 export const getUserAnalytics = async (_req: AuthRequest, res: Response): Promise<void> => {
   try {
     const totalUsers = await User.countDocuments();
-    const studentCount = await User.countDocuments({ role: 'student' });
-    const organizerCount = await User.countDocuments({ role: 'organizer' });
-    const adminCount = await User.countDocuments({ role: 'admin' });
+    
+    // Users by role
+    const usersByRole = await User.aggregate([
+      { $group: { _id: '$role', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+    ]);
+
+    // Active users (users who have registered for events or logged in recently)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    const activeUsers = await User.countDocuments({
+      $or: [
+        { lastLogin: { $gte: thirtyDaysAgo } },
+        { updatedAt: { $gte: thirtyDaysAgo } }
+      ]
+    });
+
+    // New users this month
+    const firstDayOfMonth = new Date();
+    firstDayOfMonth.setDate(1);
+    firstDayOfMonth.setHours(0, 0, 0, 0);
+    
+    const newUsersThisMonth = await User.countDocuments({
+      createdAt: { $gte: firstDayOfMonth },
+    });
 
     // Users by department
     const usersByDepartment = await User.aggregate([
@@ -369,29 +392,14 @@ export const getUserAnalytics = async (_req: AuthRequest, res: Response): Promis
       { $sort: { count: -1 } },
     ]);
 
-    // Recent registrations (last 30 days)
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const recentUsers = await User.countDocuments({
-      createdAt: { $gte: thirtyDaysAgo },
-    });
-
     res.status(200).json({
       success: true,
       data: {
-        overview: {
-          totalUsers,
-          studentCount,
-          organizerCount,
-          adminCount,
-          recentUsers,
-        },
+        totalUsers,
+        activeUsers,
+        usersByRole,
+        newUsersThisMonth,
         usersByDepartment,
-        roleDistribution: [
-          { role: 'Student', count: studentCount },
-          { role: 'Organizer', count: organizerCount },
-          { role: 'Admin', count: adminCount },
-        ],
       },
     });
   } catch (error: any) {

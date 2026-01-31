@@ -98,6 +98,10 @@ export default function StudentDashboard({ onLogout, onHome }: StudentDashboardP
     try {
       setRegistering(true);
       const eventId = selectedEventForRegistration._id || selectedEventForRegistration.id;
+      if (!eventId) {
+        alert('Invalid event ID');
+        return;
+      }
       await registrationAPI.register(eventId);
       
       setShowRegistrationModal(false);
